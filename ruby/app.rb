@@ -85,6 +85,7 @@ class App < Sinatra::Base
 
   post '/login' do
     name = params[:name]
+    # NOTE: limit 1をつけても良さそう
     statement = db.prepare('SELECT * FROM user WHERE name = ?')
     row = statement.execute(name).first
     if row.nil? || row['password'] != Digest::SHA1.hexdigest(row['salt'] + params[:password])
@@ -103,6 +104,7 @@ class App < Sinatra::Base
     user_id = session[:user_id]
     message = params[:message]
     channel_id = params[:channel_id]
+    # NOTE:  user_id.nilであればuser.nil?になると思うから比較必要？
     if user_id.nil? || message.nil? || channel_id.nil? || user.nil?
       return 403
     end
@@ -121,9 +123,12 @@ class App < Sinatra::Base
     statement = db.prepare('SELECT * FROM message WHERE id > ? AND channel_id = ? ORDER BY id DESC LIMIT 100')
     rows = statement.execute(last_message_id, channel_id).to_a
     response = []
+    # NOTE: ここは最適化できそう。逐一クエリ発行ではなくて一括でデータを取って
+    # キャッシュ上に置いて、キャッシュから参照するイメージ
     rows.each do |row|
       r = {}
       r['id'] = row['id']
+      # NOTE: limit 1をつけても良さそう
       statement = db.prepare('SELECT name, display_name, avatar_icon FROM user WHERE id = ?')
       r['user'] = statement.execute(row['user_id']).first
       r['date'] = row['created_at'].strftime("%Y/%m/%d %H:%M:%S")
@@ -131,9 +136,12 @@ class App < Sinatra::Base
       response << r
       statement.close
     end
+    # NOTE: reverseするぐらいだったら、123行目のstatementでDESCじゃなくてASCでも良さそう？
     response.reverse!
 
+    # NOTE: rows.map{}がresponse[-1]['id']で同じようなことができそう。
     max_message_id = rows.empty? ? 0 : rows.map { |row| row['id'] }.max
+    # NOTE: havereadって既読かどうか？？
     statement = db.prepare([
       'INSERT INTO haveread (user_id, channel_id, message_id, updated_at, created_at) ',
       'VALUES (?, ?, ?, NOW(), NOW()) ',
@@ -145,18 +153,21 @@ class App < Sinatra::Base
     response.to_json
   end
 
+  # NOTE: ajaxのためのっぽい
   get '/fetch' do
     user_id = session[:user_id]
     if user_id.nil?
       return 403
     end
 
+    # NOTE: なんのためのsleep？
     sleep 1.0
 
     rows = db.query('SELECT id FROM channel').to_a
     channel_ids = rows.map { |row| row['id'] }
 
     res = []
+    # NOTE: havereadは全て取ってきて処理を行いたい.キャッシュ戦略.message数もいけるかな？
     channel_ids.each do |channel_id|
       statement = db.prepare('SELECT * FROM haveread WHERE user_id = ? AND channel_id = ?')
       row = statement.execute(user_id, channel_id).first
