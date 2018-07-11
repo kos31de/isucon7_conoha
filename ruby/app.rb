@@ -137,6 +137,7 @@ class App < Sinatra::Base
       statement.close
     end
     # NOTE: reverseするぐらいだったら、123行目のstatementでDESCじゃなくてASCでも良さそう？
+    # → 0~100件目を取得したいときはやはりDESCを使って処理してその中から100~降順で表示させたいならやっぱり必要そう。
     response.reverse!
 
     # NOTE: rows.map{}がresponse[-1]['id']で同じようなことができそう。
@@ -200,16 +201,20 @@ class App < Sinatra::Base
     if @page.nil?
       @page = '1'
     end
+    # NOTE: /A Z/はちゃんとフィルタリングするため
+    # 参考: https://qiita.com/jnchito/items/ea7832df6f64a9034872
     if @page !~ /\A\d+\Z/ || @page == '0'
       return 400
     end
     @page = @page.to_i
 
     n = 20
+    # NOTE: OFFSETの決め方がよく分からない
     statement = db.prepare('SELECT * FROM message WHERE channel_id = ? ORDER BY id DESC LIMIT ? OFFSET ?')
     rows = statement.execute(@channel_id, n, (@page - 1) * n).to_a
     statement.close
     @messages = []
+    # NOTE: ここもキャッシュ戦略でいけそう
     rows.each do |row|
       r = {}
       r['id'] = row['id']
@@ -225,6 +230,7 @@ class App < Sinatra::Base
     statement = db.prepare('SELECT COUNT(*) as cnt FROM message WHERE channel_id = ?')
     cnt = statement.execute(@channel_id).first['cnt'].to_f
     statement.close
+    # NOTE: page分割かな？
     @max_page = cnt == 0 ? 1 :(cnt / n).ceil
 
     return 400 if @page > @max_page
@@ -238,6 +244,7 @@ class App < Sinatra::Base
       return redirect '/login', 303
     end
 
+    # NOTE: なぞのコンマ, get_channel_list_infoで何を取って来ているか分からない
     @channels, = get_channel_list_info
 
     user_name = params[:user_name]
@@ -252,7 +259,7 @@ class App < Sinatra::Base
     @self_profile = user['id'] == @user['id']
     erb :profile
   end
-  
+
   get '/add_channel' do
     if user.nil?
       return redirect '/login', 303
@@ -274,12 +281,14 @@ class App < Sinatra::Base
     end
     statement = db.prepare('INSERT INTO channel (name, description, updated_at, created_at) VALUES (?, ?, NOW(), NOW())')
     statement.execute(name, description)
+    # NOTE: こういうのでlast_idが取れるというのを初めて知った
     channel_id = db.last_id
     statement.close
     redirect "/channel/#{channel_id}", 303
   end
 
   post '/profile' do
+    # NOTE: 2度user.nil?か確認する意味は？
     if user.nil?
       return redirect '/login', 303
     end
@@ -295,12 +304,15 @@ class App < Sinatra::Base
     file = params[:avatar_icon]
     unless file.nil?
       filename = file[:filename]
+      # NOTE: 簡単化できる、早くなるか分からんけど。
+      # !(filename.nil? || filename.empty?) かな？
       if !filename.nil? && !filename.empty?
         ext = filename.include?('.') ? File.extname(filename) : ''
         unless ['.jpg', '.jpeg', '.png', '.gif'].include?(ext)
           return 400
         end
 
+        # NOTE:  1 * 1024 * 1024
         if settings.avatar_max_size < file[:tempfile].size
           return 400
         end
@@ -313,6 +325,7 @@ class App < Sinatra::Base
       end
     end
 
+    # NOTE: 簡単化できる、早くなるか分からんけど。
     if !avatar_name.nil? && !avatar_data.nil?
       statement = db.prepare('INSERT INTO image (name, data) VALUES (?, ?)')
       statement.execute(avatar_name, avatar_data)
@@ -322,6 +335,7 @@ class App < Sinatra::Base
       statement.close
     end
 
+    # NOTE: 簡単化できる、早くなるか分からんけど。
     if !display_name.nil? || !display_name.empty?
       statement = db.prepare('UPDATE user SET display_name = ? WHERE id = ?')
       statement.execute(display_name, user['id'])
@@ -338,6 +352,7 @@ class App < Sinatra::Base
     statement.close
     ext = file_name.include?('.') ? File.extname(file_name) : ''
     mime = ext2mime(ext)
+    # NOTE: 簡単化できる、早くなるか分からんけど。
     if !row.nil? && !mime.empty?
       content_type mime
       return row['data']
@@ -391,6 +406,7 @@ class App < Sinatra::Base
   end
 
   def get_channel_list_info(focus_channel_id = nil)
+    # NOTE: 特定のチャンネルのみ知りたそうだからそこだけ検索してあげれば良さそう
     channels = db.query('SELECT * FROM channel ORDER BY id').to_a
     description = ''
     channels.each do |channel|
