@@ -1,4 +1,5 @@
 require 'digest/sha1'
+#まずこのgemなに？？
 require 'mysql2'
 require 'sinatra/base'
 
@@ -85,6 +86,7 @@ class App < Sinatra::Base
 
   post '/login' do
     name = params[:name]
+    # SELECT *　遅そう
     statement = db.prepare('SELECT * FROM user WHERE name = ?')
     row = statement.execute(name).first
     if row.nil? || row['password'] != Digest::SHA1.hexdigest(row['salt'] + params[:password])
@@ -118,6 +120,7 @@ class App < Sinatra::Base
 
     channel_id = params[:channel_id].to_i
     last_message_id = params[:last_message_id].to_i
+    # SELECT * 遅そう
     statement = db.prepare('SELECT * FROM message WHERE id > ? AND channel_id = ? ORDER BY id DESC LIMIT 100')
     rows = statement.execute(last_message_id, channel_id).to_a
     response = []
@@ -151,13 +154,14 @@ class App < Sinatra::Base
       return 403
     end
 
-    sleep 1.0
+#    sleep 1.0 とりあえずコメントアウトした
 
     rows = db.query('SELECT id FROM channel').to_a
     channel_ids = rows.map { |row| row['id'] }
 
     res = []
     channel_ids.each do |channel_id|
+#SELECT *
       statement = db.prepare('SELECT * FROM haveread WHERE user_id = ? AND channel_id = ?')
       row = statement.execute(user_id, channel_id).first
       statement.close
@@ -230,6 +234,7 @@ class App < Sinatra::Base
     @channels, = get_channel_list_info
 
     user_name = params[:user_name]
+
     statement = db.prepare('SELECT * FROM user WHERE name = ?')
     @user = statement.execute(user_name).first
     statement.close
@@ -241,7 +246,7 @@ class App < Sinatra::Base
     @self_profile = user['id'] == @user['id']
     erb :profile
   end
-  
+
   get '/add_channel' do
     if user.nil?
       return redirect '/login', 303
@@ -319,7 +324,7 @@ class App < Sinatra::Base
 
     redirect '/', 303
   end
-
+#画像はnginxが返すから、ここはいらない？
   get '/icons/:file_name' do
     file_name = params[:file_name]
     statement = db.prepare('SELECT * FROM image WHERE name = ?')
