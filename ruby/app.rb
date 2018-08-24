@@ -2,6 +2,7 @@ require 'digest/sha1'
 #まずこのgemなに？？
 require 'mysql2'
 require 'sinatra/base'
+require 'pry'
 
 class App < Sinatra::Base
   configure do
@@ -87,6 +88,7 @@ class App < Sinatra::Base
   post '/login' do
     name = params[:name]
     # SELECT *　遅そう
+
     statement = db.prepare('SELECT * FROM user WHERE name = ?')
     row = statement.execute(name).first
     if row.nil? || row['password'] != Digest::SHA1.hexdigest(row['salt'] + params[:password])
@@ -156,15 +158,16 @@ class App < Sinatra::Base
 
 #    sleep 1.0 とりあえずコメントアウトした
 
-    rows = db.query('SELECT id FROM channel').to_a
-    channel_ids = rows.map { |row| row['id'] }
+    rows = db.query('SELECT * FROM haveread INNER JOIN channel ON haveread.channel_id = channel.id').to_a
+    channel_ids = rows.map { |row| row['channel_id'] }.uniq
 
     res = []
     channel_ids.each do |channel_id|
+      row = rows.select{ |r_tmp|  r_tmp["user_id"] == user_id && r_tmp["channel_id"] == channel_id }.first
 #SELECT *
-      statement = db.prepare('SELECT * FROM haveread WHERE user_id = ? AND channel_id = ?')
-      row = statement.execute(user_id, channel_id).first
-      statement.close
+      # statement = db.prepare('SELECT * FROM haveread WHERE user_id = ? AND channel_id = ?')
+      # row = statement.execute(user_id, channel_id).first
+      # statement.close
       r = {}
       r['channel_id'] = channel_id
       r['unread'] = if row.nil?
@@ -345,10 +348,10 @@ class App < Sinatra::Base
     return @db_client if defined?(@db_client)
 
     @db_client = Mysql2::Client.new(
-      host: ENV.fetch('ISUBATA_DB_HOST') { 'localhost' },
+      host: ENV.fetch('ISUBATA_DB_HOST') { '127.0.0.1' },
       port: ENV.fetch('ISUBATA_DB_PORT') { '3306' },
       username: ENV.fetch('ISUBATA_DB_USER') { 'root' },
-      password: ENV.fetch('ISUBATA_DB_PASSWORD') { '' },
+      password: ENV.fetch('ISUBATA_DB_PASSWORD') { 'root' },
       database: 'isubata',
       encoding: 'utf8mb4'
     )
