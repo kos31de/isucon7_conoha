@@ -17,15 +17,18 @@ def db
 end
 
 def take_out_image_from_db
-  statement = db.prepare('SELECT * FROM image')
-  datas = statement.execute.to_a
+  11.downto(1) do |i|
+    query = "SELECT id, name, data FROM image WHERE id <= #{i * 100} ORDER BY id DESC LIMIT 100"
+    # statement = db.prepare('SELECT * FROM image')
+    datas = db.query(query).to_a
 
-  datas.each.with_index do |data,i|
-    file_name = data["name"]
-    content = data["data"]
+    datas.each do |data|
+      file_name = data["name"]
+      content = data["data"]
 
-    File.open("../public/image/#{file_name}", "w+") do |f|
-      f.puts(content)
+      File.open("../public/image/#{file_name}", "w+") do |f|
+        f.puts(content)
+      end
     end
   end
 end
