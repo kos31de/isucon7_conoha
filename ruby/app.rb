@@ -89,7 +89,7 @@ class App < Sinatra::Base
     name = params[:name]
     # SELECT *　遅そう
 
-    statement = db.prepare('SELECT * FROM user WHERE name = ?')
+    statement = db.prepare('SELECT * FROM user WHERE name = ? limit 1')
     row = statement.execute(name).first
     if row.nil? || row['password'] != Digest::SHA1.hexdigest(row['salt'] + params[:password])
       return 403
@@ -202,19 +202,21 @@ class App < Sinatra::Base
     @page = @page.to_i
 
     n = 20
-    statement = db.prepare('SELECT * FROM message WHERE channel_id = ? ORDER BY id DESC LIMIT ? OFFSET ?')
+    statement = db.prepare('SELECT * FROM message INNER JOIN user ON message.user_id = user.id where channel_id = ? ORDER BY message.id DESC LIMIT ? OFFSET ?')
+    # statement = db.prepare('SELECT * FROM message WHERE channel_id = ? ORDER BY id DESC LIMIT ? OFFSET ?')
     rows = statement.execute(@channel_id, n, (@page - 1) * n).to_a
     statement.close
     @messages = []
     rows.each do |row|
       r = {}
       r['id'] = row['id']
-      statement = db.prepare('SELECT name, display_name, avatar_icon FROM user WHERE id = ?')
-      r['user'] = statement.execute(row['user_id']).first
+      # statement = db.prepare('SELECT name, display_name, avatar_icon FROM user WHERE id = ?')
+      # r['user'] = statement.execute(row['user_id']).first
+      r['user'] = row.select{|k,v| ["name", "display_name", "avatar_icon"].include?(k)}
       r['date'] = row['created_at'].strftime("%Y/%m/%d %H:%M:%S")
       r['content'] = row['content']
       @messages << r
-      statement.close
+      # statement.close
     end
     @messages.reverse!
 
