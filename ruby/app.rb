@@ -247,6 +247,7 @@ class App < Sinatra::Base
     if @user.nil?
       return 404
     end
+    @session = session
 
     @self_profile = user['id'] == @user['id']
     erb :profile
