@@ -280,6 +280,7 @@ class App < Sinatra::Base
 
   post '/profile' do
     if user.nil?
+      raise "profile update error"
       return redirect '/login', 303
     end
 
