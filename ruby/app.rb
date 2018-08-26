@@ -279,8 +279,9 @@ class App < Sinatra::Base
   end
 
   post '/profile' do
+    p session
     if user.nil?
-      raise "profile update error"
+      p session
       return redirect '/login', 303
     end
 
