@@ -87,7 +87,8 @@ class App < Sinatra::Base
   post '/login' do
     name = params[:name]
     # SELECT *　遅そう
-    statement = db.prepare('SELECT * FROM user WHERE name = ?')
+    # select id, name,salt
+    statement = db.prepare('SELECT id,name,salt FROM user WHERE name = ?')
     row = statement.execute(name).first
     if row.nil? || row['password'] != Digest::SHA1.hexdigest(row['salt'] + params[:password])
       return 403
@@ -199,6 +200,7 @@ class App < Sinatra::Base
     @page = @page.to_i
 
     n = 20
+    #limit ? ofset ?とは
     statement = db.prepare('SELECT * FROM message WHERE channel_id = ? ORDER BY id DESC LIMIT ? OFFSET ?')
     rows = statement.execute(@channel_id, n, (@page - 1) * n).to_a
     statement.close
@@ -234,8 +236,8 @@ class App < Sinatra::Base
     @channels, = get_channel_list_info
 
     user_name = params[:user_name]
-
-    statement = db.prepare('SELECT * FROM user WHERE name = ?')
+    # * -> id name display_name, avatar_icon
+    statement = db.prepare('SELECT id,name,display_name,avatar_icon FROM user WHERE name = ?')
     @user = statement.execute(user_name).first
     statement.close
 
@@ -345,10 +347,10 @@ class App < Sinatra::Base
     return @db_client if defined?(@db_client)
 
     @db_client = Mysql2::Client.new(
-      host: ENV.fetch('ISUBATA_DB_HOST') { 'localhost' },
+      host: ENV.fetch('ISUBATA_DB_HOST') { '127.0.0.1' },
       port: ENV.fetch('ISUBATA_DB_PORT') { '3306' },
       username: ENV.fetch('ISUBATA_DB_USER') { 'root' },
-      password: ENV.fetch('ISUBATA_DB_PASSWORD') { '' },
+      password: ENV.fetch('ISUBATA_DB_PASSWORD') { 'root' },
       database: 'isubata',
       encoding: 'utf8mb4'
     )
