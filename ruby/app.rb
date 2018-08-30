@@ -88,7 +88,7 @@ class App < Sinatra::Base
     name = params[:name]
     # SELECT *　遅そう
     # select id, name,salt
-    statement = db.prepare('SELECT id,name,salt FROM user WHERE name = ?')
+    statement = db.prepare('SELECT id,name,salt,password FROM user WHERE name = ? LIMIT 1')
     row = statement.execute(name).first
     if row.nil? || row['password'] != Digest::SHA1.hexdigest(row['salt'] + params[:password])
       return 403
