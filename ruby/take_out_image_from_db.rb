@@ -7,8 +7,8 @@ def db
   @db_client = Mysql2::Client.new(
     host: ENV.fetch('ISUBATA_DB_HOST') { '127.0.0.1' },
     port: ENV.fetch('ISUBATA_DB_PORT') { '3306' },
-    username: ENV.fetch('ISUBATA_DB_USER') { 'root' },
-    password: ENV.fetch('ISUBATA_DB_PASSWORD') { 'root' },
+    username: ENV.fetch('ISUBATA_DB_USER') { 'isucon' },
+    password: ENV.fetch('ISUBATA_DB_PASSWORD') { 'isucon' },
     database: 'isubata',
     encoding: 'utf8mb4'
   )
