@@ -317,9 +317,9 @@ class App < Sinatra::Base
 
     if !avatar_name.nil? && !avatar_data.nil?
       # # TODO: ここにdbへ追加する処理を行う。
-      # File.open("../public/image/#{avatar_name}", "r+") do |f|
-      #   f.puts(avatar_data)
-      # end
+      File.open("../public/image/#{avatar_name}", "r+b") do |f|
+        f.puts(avatar_data)
+      end
       statement = db.prepare('INSERT INTO image (name, data) VALUES (?, ?)')
       statement.execute(avatar_name, avatar_data)
       statement.close
