@@ -158,11 +158,12 @@ class App < Sinatra::Base
 #    sleep 1.0 とりあえずコメントアウトした
 
     rows = db.query('SELECT * FROM haveread INNER JOIN channel ON haveread.channel_id = channel.id').to_a
-    channel_ids = rows.map { |row| row['id'] }
+    channel_ids = rows.map { |row| row['channel_id'] }.uniq
 
     res = []
     channel_ids.each do |channel_id|
-      row = rows.select{ |r_tmp|  r_tmp[:user_id] == user_id && r_tmp[:channel_id] == channel_id }
+      row = rows.select{ |r_tmp|  r_tmp["user_id"] == user_id && r_tmp["channel_id"] == channel_id }.first
+      #SELECT *
       # statement = db.prepare('SELECT * FROM haveread WHERE user_id = ? AND channel_id = ?')
       # row = statement.execute(user_id, channel_id).first
       # statement.close
