@@ -320,9 +320,9 @@ class App < Sinatra::Base
       File.open("../public/image/#{avatar_name}", "r+") do |f|
         f.puts(avatar_data)
       end
-      # statement = db.prepare('INSERT INTO image (name, data) VALUES (?, ?)')
-      # statement.execute(avatar_name, avatar_data)
-      # statement.close
+      statement = db.prepare('INSERT INTO image (name, data) VALUES (?, ?)')
+      statement.execute(avatar_name, avatar_data)
+      statement.close
       statement = db.prepare('UPDATE user SET avatar_icon = ? WHERE id = ?')
       statement.execute(avatar_name, user['id'])
       statement.close
