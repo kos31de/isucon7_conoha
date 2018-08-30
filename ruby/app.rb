@@ -87,7 +87,7 @@ class App < Sinatra::Base
 
   post '/login' do
     name = params[:name]
-    # SELECT *　遅そう
+    # SELECT * 遅そう
 
     statement = db.prepare('SELECT * FROM user WHERE name = ? limit 1')
     row = statement.execute(name).first
@@ -280,9 +280,8 @@ class App < Sinatra::Base
   end
 
   post '/profile' do
-    p session
+    
     if user.nil?
-      p session
       return redirect '/login', 303
     end
 
